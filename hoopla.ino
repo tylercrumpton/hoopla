@@ -36,6 +36,7 @@ unsigned long lastWirelessChange;
 byte effect = 0;
 CRGB color = CRGB::Teal;
 CRGB nextColor = CRGB::Black;
+CRGB stripColor = CRGB::Black;
 //BlinkOne/SolidOne
 uint8_t offset = 0; //how many to skip when writing the LED.
 //Colorpal
@@ -91,8 +92,10 @@ void runRotatingRainbow();
 void runJuggle();
 void runLightning();
 void runFill();
+void setStripColor(CRGB stripColor);
 void runSolidOne();
 void runBlinkOne();
+void runSolid(CRGB stripColor);
 void FillLEDsFromPaletteColors(uint8_t colorIndex);
 void SetupRandomPalette();
 void runLeds();
@@ -137,7 +140,7 @@ void setup() {
 	Serial.print("[start] Attempting to associate (STA) to "); Serial.println(WiFi.SSID());
 	lastWirelessChange = millis();
 	WiFi.mode(WIFI_STA);
-	WiFi.setAutoReconnect(false);
+	WiFi.setAutoReconnect(true);
 	WiFi.hostname(name);
 	WiFi.begin();
 
@@ -213,7 +216,7 @@ void setup() {
 	Serial.println("[start] starting http");
 	server.on("/style.css", handleStyle);
 	server.on("/", handleRoot);
-  server.on("/effect", handleEffectGet);
+    server.on("/effect", handleEffectGet);
 	server.on("/effect/save", handleEffectSave);
 	server.on("/setup", handleSetup);
 	server.on("/setup/save", handleSetupSave);
@@ -399,6 +402,9 @@ void runLeds() {
 		case 14:
 			runLightning();
 			break;
+        case 16:
+            runSolid();
+            break;
 		default:
 			Serial.print("[blink] Unknown effect selected: "); Serial.println(effect);
 			delay(10);
@@ -507,6 +513,7 @@ void runJuggle() {
 }
 
 void runLightning() {
+  runFill();
 	//Serial.print("[ltnng] entered. millis()="); Serial.print(millis()); Serial.print(" lastFlashTime="); Serial.print(lastFlashTime); Serial.print(" nextFlashDelay="); Serial.println(nextFlashDelay);
 	if ( (millis() - lastFlashTime) > nextFlashDelay ) { //time to flash
 		Serial.print("[ltnng] flashCounter: ");
@@ -559,9 +566,17 @@ void runSolidOne() {
 	leds[offset] = color;
 }
 
-
+void runSolid() {
+  setStripColor(stripColor);
+}
 
 //UTILITIES FOR EFFECTS
+
+void setStripColor(CRGB stripColor) {
+  for ( int i=0; i<NUMPIXELS; i++ ) {
+    leds[i] = stripColor;
+  }
+}
 
 void FillLEDsFromPaletteColors(uint8_t colorIndex) {
 	//uint8_t beatB = beatsin8(30, 10, 20);                       // Delta hue between LED's
@@ -647,8 +662,6 @@ void handleRoot() {
 		<option value='12'>Juggle 2</option>\
 		<option value='13'>Juggle 3</option>\
 		<option value='14'>Lightning</option>\
-		<option value='1'>Blink One</option>\
-		<option value='2'>Solid One</option>\
 		</select>\
 		<button type='submit'>Set</button>\
 		</form>\
@@ -716,6 +729,7 @@ void handleEffectSave() {
   Serial.print("[httpd] effect save. ");
   effect = server.arg("e").toInt();
   Serial.println(effect);
+  stripColor = server.arg("c");
   server.sendHeader("Location", "/?ok", true);
   server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   server.sendHeader("Pragma", "no-cache");
