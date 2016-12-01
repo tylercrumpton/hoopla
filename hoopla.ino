@@ -13,7 +13,7 @@
 #define Serial			if(DEBUG)Serial		//Only log if we are in debug mode
 
 #define FRAMERATE		60					//how many frames per second to we ideally want to run
-#define MAX_LOAD_MA		400					//how many mA are we allowed to draw, at 5 volts
+#define MAX_LOAD_MA		20000					//how many mA are we allowed to draw, at 5 volts
 
 const char* ssid = "";
 const char* password = "";
@@ -100,6 +100,7 @@ void handleRoot();
 void handleDebug();
 void handleDebugReset();
 void handleDebugDisconnect();
+void handleEffectGet();
 void handleEffectSave();
 void handleStyle();
 void handleSetup();
@@ -212,6 +213,7 @@ void setup() {
 	Serial.println("[start] starting http");
 	server.on("/style.css", handleStyle);
 	server.on("/", handleRoot);
+  server.on("/effect", handleEffectGet);
 	server.on("/effect/save", handleEffectSave);
 	server.on("/setup", handleSetup);
 	server.on("/setup/save", handleSetupSave);
@@ -698,6 +700,16 @@ void handleDebugDisconnect() {
 	server.client().stop();
 	delay(500);
 	WiFi.disconnect();
+}
+
+void handleEffectGet() {
+  server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  server.sendHeader("Pragma", "no-cache");
+  server.sendHeader("Expires", "-1");
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "text/plain");
+  server.sendContent(String(effect));
+  server.client().stop(); // Stop is needed because we sent no content length
 }
 
 void handleEffectSave() {
