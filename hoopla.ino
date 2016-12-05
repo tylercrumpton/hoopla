@@ -729,7 +729,7 @@ void handleEffectSave() {
   Serial.print("[httpd] effect save. ");
   effect = server.arg("e").toInt();
   Serial.println(effect);
-  stripColor = server.arg("c");
+  stripColor = CRGB(server.arg("r").toInt(), server.arg("g").toInt(), server.arg("b").toInt());
   server.sendHeader("Location", "/?ok", true);
   server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   server.sendHeader("Pragma", "no-cache");
